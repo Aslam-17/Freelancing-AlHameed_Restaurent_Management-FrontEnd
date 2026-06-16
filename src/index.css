@@ -546,6 +546,16 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 640px) {
   .stats-grid { grid-template-columns: 1fr; }
   .form-row   { grid-template-columns: 1fr; }
+
+  /* ── Slim horizontal scrollbar on tables ── */
+  .data-table-wrap { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.08) transparent; }
+  .data-table-wrap::-webkit-scrollbar { height: 3px; }
+  .data-table-wrap::-webkit-scrollbar-track { background: transparent; }
+  .data-table-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 999px; }
+
+  /* ── Blueprint toolbar: stack vertically on mobile ── */
+  .blueprint-toolbar { flex-direction: column; align-items: flex-start; gap: .25rem; padding: .6rem 1rem; }
+  .blueprint-toolbar__hint { font-size: .65rem; }
 }
 
 /* ═══════════════════════════════════════════════════════════
