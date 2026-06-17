@@ -132,17 +132,8 @@ function ResetPasswordForm({ waiter, onDone, onCancel }) {
 }
 
 // ── Waiter row ─────────────────────────────────────────────────
-function WaiterRow({ waiter, onDeleted, onUpdated }) {
+function WaiterRow({ waiter, onDelete, onUpdated, deleting }) {
   const [mode, setMode] = useState('view'); // 'view'|'edit'|'reset'
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    if (!window.confirm(`Delete waiter "@${waiter.username}"? This cannot be undone.`)) return;
-    setDeleting(true);
-    try { await usersApi.delete(waiter._id); onDeleted(waiter._id); }
-    catch (e) { alert(e.message); }
-    finally { setDeleting(false); }
-  };
 
   return (
     <tr>
@@ -178,7 +169,7 @@ function WaiterRow({ waiter, onDeleted, onUpdated }) {
               ✏️ Edit
             </button>
           )}
-          <button className="btn btn-danger btn-sm" onClick={handleDelete} disabled={deleting}>
+          <button className="btn btn-danger btn-sm" onClick={() => onDelete(waiter)} disabled={deleting}>
             {deleting ? '…' : '🗑 Delete'}
           </button>
         </div>
@@ -193,6 +184,8 @@ export default function WaitersView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const fetchStaff = useCallback(async () => {
     setError('');
@@ -203,76 +196,118 @@ export default function WaitersView() {
 
   useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
+  const executeDelete = async () => {
+    if (!staffToDelete) return;
+    const id = staffToDelete._id;
+    setDeletingId(id);
+    setStaffToDelete(null);
+    try {
+      await usersApi.delete(id);
+      setStaff((p) => p.filter((x) => x._id !== id));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
-    <div className="view-animate" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-header__breadcrumb">Admin › Staff Management</div>
-          <div className="page-header__title">👤 Staff Management</div>
+    <>
+      <div className="view-animate" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div className="page-header">
+          <div>
+            <div className="page-header__breadcrumb">Admin › Staff Management</div>
+            <div className="page-header__title">👤 Staff Management</div>
+          </div>
+          <div className="page-header__actions">
+            <span className="badge badge-muted">{staff.length} member{staff.length !== 1 ? 's' : ''}</span>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowForm((v) => !v)}>
+              {showForm ? '✕ Cancel' : '➕ Add Staff'}
+            </button>
+          </div>
         </div>
-        <div className="page-header__actions">
-          <span className="badge badge-muted">{staff.length} member{staff.length !== 1 ? 's' : ''}</span>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowForm((v) => !v)}>
-            {showForm ? '✕ Cancel' : '➕ Add Staff'}
-          </button>
+
+        <div className="page-body" style={{ flex: 1, overflowY: 'auto' }}>
+          {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠️</span>{error}</div>}
+
+          {/* Add form */}
+          {showForm && (
+            <AddWaiterForm
+              onSaved={() => { setShowForm(false); fetchStaff(); }}
+              onCancel={() => setShowForm(false)}
+            />
+          )}
+
+          {/* Info */}
+          <div className="alert" style={{ background: 'var(--info-dim)', border: '1px solid rgba(56,189,248,.2)', color: 'rgba(186,230,253,.8)', marginBottom: '1.25rem' }}>
+            <span>ℹ️</span>
+            About managing the staff accounts
+          </div>
+
+          {/* Table */}
+          <div className="data-table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Created</th>
+                  <th>Password</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center' }}>
+                    <span className="spinner dark" style={{ margin: '0 auto' }} />
+                  </td></tr>
+                ) : staff.length === 0 ? (
+                  <tr className="empty-row"><td colSpan={5}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.75rem' }}>
+                      <span style={{ fontSize: '2rem', opacity: .3 }}>👤</span>
+                      <span>No staff accounts yet — add one above.</span>
+                    </div>
+                  </td></tr>
+                ) : (
+                  staff.map((w) => (
+                    <WaiterRow
+                      key={w._id}
+                      waiter={w}
+                      onDelete={setStaffToDelete}
+                      onUpdated={fetchStaff}
+                      deleting={deletingId === w._id}
+                    />
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <div className="page-body" style={{ flex: 1, overflowY: 'auto' }}>
-        {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠️</span>{error}</div>}
-
-        {/* Add form */}
-        {showForm && (
-          <AddWaiterForm
-            onSaved={() => { setShowForm(false); fetchStaff(); }}
-            onCancel={() => setShowForm(false)}
-          />
-        )}
-
-        {/* Info */}
-        <div className="alert" style={{ background: 'var(--info-dim)', border: '1px solid rgba(56,189,248,.2)', color: 'rgba(186,230,253,.8)', marginBottom: '1.25rem' }}>
-          <span>ℹ️</span>
-          About managing the staff accounts
+      {staffToDelete && (
+        <div className="modal-overlay" onClick={() => setStaffToDelete(null)}>
+          <div className="confirm-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-modal-card__icon" style={{ color: 'var(--danger)' }}>
+              <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+            </div>
+            <h3 className="confirm-modal-card__title">Delete Staff Account?</h3>
+            <p className="confirm-modal-card__text">
+              Are you sure you want to delete <strong>@{staffToDelete.username}</strong>? This cannot be undone.
+            </p>
+            <div className="confirm-modal-card__actions">
+              <button className="confirm-modal-card__btn-no" onClick={() => setStaffToDelete(null)}>
+                Cancel
+              </button>
+              <button className="confirm-modal-card__btn-yes is-danger" onClick={executeDelete}>
+                Delete Staff
+              </button>
+            </div>
+          </div>
         </div>
-
-        {/* Table */}
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Created</th>
-                <th>Password</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center' }}>
-                  <span className="spinner dark" style={{ margin: '0 auto' }} />
-                </td></tr>
-              ) : staff.length === 0 ? (
-                <tr className="empty-row"><td colSpan={5}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.75rem' }}>
-                    <span style={{ fontSize: '2rem', opacity: .3 }}>👤</span>
-                    <span>No staff accounts yet — add one above.</span>
-                  </div>
-                </td></tr>
-              ) : (
-                staff.map((w) => (
-                  <WaiterRow
-                    key={w._id}
-                    waiter={w}
-                    onDeleted={(id) => setStaff((p) => p.filter((x) => x._id !== id))}
-                    onUpdated={fetchStaff}
-                  />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }

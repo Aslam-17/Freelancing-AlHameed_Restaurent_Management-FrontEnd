@@ -26,6 +26,7 @@ export default function BlueprintView() {
   const [error,     setError]     = useState('');
   const [selected,  setSelected]  = useState(null); // Table | null
   const [seeding,   setSeeding]   = useState(false);
+  const [showSeedModal, setShowSeedModal] = useState(false);
 
   const fetchTables = useCallback(async () => {
     setError('');
@@ -42,8 +43,12 @@ export default function BlueprintView() {
   useEffect(() => { fetchTables(); }, [fetchTables]);
 
   // ── Seed default layout ───────────────────────────────────
-  const handleSeedDefault = async () => {
-    if (!window.confirm('This will create the default 8 tables. Continue?')) return;
+  const triggerSeedDefault = () => {
+    setShowSeedModal(true);
+  };
+
+  const executeSeedDefault = async () => {
+    setShowSeedModal(false);
     setSeeding(true);
     setError('');
     try {
@@ -66,7 +71,8 @@ export default function BlueprintView() {
   };
 
   return (
-    <div className="view-animate" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <>
+      <div className="view-animate" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div className="page-header">
         <div>
@@ -77,7 +83,7 @@ export default function BlueprintView() {
           {tables.length === 0 && !loading && (
             <button
               className="btn btn-secondary btn-sm"
-              onClick={handleSeedDefault}
+              onClick={triggerSeedDefault}
               disabled={seeding}
             >
               {seeding ? <><span className="spinner dark" /> Creating…</> : '⚡ Init Default Layout'}
@@ -181,6 +187,31 @@ export default function BlueprintView() {
           </div>
         )}
       </div>
-    </div>
+
+      {showSeedModal && (
+        <div className="modal-overlay" onClick={() => setShowSeedModal(false)}>
+          <div className="confirm-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-modal-card__icon" style={{ color: 'var(--accent)' }}>
+              <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+              </svg>
+            </div>
+            <h3 className="confirm-modal-card__title">Initialize Default Layout?</h3>
+            <p className="confirm-modal-card__text">
+              This will create the default 8 tables. Continue?
+            </p>
+            <div className="confirm-modal-card__actions">
+              <button className="confirm-modal-card__btn-no" onClick={() => setShowSeedModal(false)}>
+                Cancel
+              </button>
+              <button className="confirm-modal-card__btn-yes" style={{ background: 'var(--accent)', color: 'white' }} onClick={executeSeedDefault}>
+                Initialize
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
+    </>
   );
 }

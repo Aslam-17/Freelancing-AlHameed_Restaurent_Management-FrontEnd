@@ -40,7 +40,7 @@ function MenuRow({ item, onEdit, onDelete, deleting }) {
           <button className="btn btn-secondary btn-sm" onClick={() => onEdit(item)}>✏️ Edit</button>
           <button
             className="btn btn-danger btn-sm"
-            onClick={() => onDelete(item._id)}
+            onClick={() => onDelete(item)}
             disabled={deleting === item._id}
           >
             {deleting === item._id ? '…' : '🗑'}
@@ -144,6 +144,7 @@ export default function MenuView() {
   const [error,    setError]    = useState('');
   const [editing,  setEditing]  = useState(null); // null | 'new' | item object
   const [deleting, setDeleting] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
   const [search,   setSearch]   = useState('');
   const [catFilter,setCatFilter]= useState('All');
 
@@ -158,9 +159,15 @@ export default function MenuView() {
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this menu item?')) return;
+  const handleDeleteClick = (item) => {
+    setItemToDelete(item);
+  };
+
+  const executeDelete = async () => {
+    if (!itemToDelete) return;
+    const id = itemToDelete._id;
     setDeleting(id);
+    setItemToDelete(null);
     try { await menuApi.delete(id); setItems((p) => p.filter((i) => i._id !== id)); }
     catch (e) { setError(e.message); }
     finally { setDeleting(null); }
@@ -176,87 +183,113 @@ export default function MenuView() {
   });
 
   return (
-    <div className="view-animate" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="page-header">
-        <div>
-          <div className="page-header__breadcrumb">Admin › Menu Items</div>
-          <div className="page-header__title">🍽️ Menu Management</div>
-        </div>
-        <div className="page-header__actions">
-          <span className="badge badge-muted">{items.length} items</span>
-          <button className="btn btn-primary btn-sm" onClick={() => setEditing('new')}>➕ Add Item</button>
-        </div>
-      </div>
-
-      <div className="page-body" style={{ flex: 1, overflowY: 'auto' }}>
-        {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠️</span>{error}</div>}
-
-        {/* Add / Edit form */}
-        {editing && (
-          <MenuForm
-            initial={editing === 'new' ? null : editing}
-            onSaved={handleSaved}
-            onCancel={() => setEditing(null)}
-          />
-        )}
-
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div className="search-bar-admin" style={{ flex: 1, maxWidth: 320 }}>
-            <span className="search-bar-admin__icon">🔍</span>
-            <input className="search-input-admin" type="search" placeholder="Search items…"
-              value={search} onChange={(e) => setSearch(e.target.value)} />
+    <>
+      <div className="view-animate" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div className="page-header">
+          <div>
+            <div className="page-header__breadcrumb">Admin › Menu Items</div>
+            <div className="page-header__title">🍽️ Menu Management</div>
           </div>
-          <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
-            {categories.map((c) => (
-              <button key={c}
-                style={{
-                  height: 34, padding: '0 .875rem', borderRadius: 'var(--r-full)',
-                  fontSize: '.8rem', fontWeight: 600, border: '1.5px solid',
-                  borderColor: catFilter === c ? 'var(--accent)' : 'var(--border)',
-                  background: catFilter === c ? 'var(--accent)' : 'var(--surface-2)',
-                  color: catFilter === c ? 'white' : 'var(--text-muted)',
-                  cursor: 'pointer', transition: 'all .2s',
-                }}
-                onClick={() => setCatFilter(c)}
-              >{c}</button>
-            ))}
+          <div className="page-header__actions">
+            <span className="badge badge-muted">{items.length} items</span>
+            <button className="btn btn-primary btn-sm" onClick={() => setEditing('new')}>➕ Add Item</button>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center' }}>
-                  <span className="spinner dark" style={{ margin: '0 auto' }} />
-                </td></tr>
-              ) : filtered.length === 0 ? (
-                <tr className="empty-row"><td colSpan={5}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.75rem' }}>
-                    <span style={{ fontSize: '2rem', opacity: .3 }}>🍽️</span>
-                    <span>{search || catFilter !== 'All' ? 'No items match your filter' : 'No menu items yet — add one above!'}</span>
-                  </div>
-                </td></tr>
-              ) : (
-                filtered.map((item) => (
-                  <MenuRow key={item._id} item={item} onEdit={setEditing} onDelete={handleDelete} deleting={deleting} />
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="page-body" style={{ flex: 1, overflowY: 'auto' }}>
+          {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠️</span>{error}</div>}
+
+          {/* Add / Edit form */}
+          {editing && (
+            <MenuForm
+              initial={editing === 'new' ? null : editing}
+              onSaved={handleSaved}
+              onCancel={() => setEditing(null)}
+            />
+          )}
+
+          {/* Filters */}
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="search-bar-admin" style={{ flex: 1, maxWidth: 320 }}>
+              <span className="search-bar-admin__icon">🔍</span>
+              <input className="search-input-admin" type="search" placeholder="Search items…"
+                value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
+              {categories.map((c) => (
+                <button key={c}
+                  style={{
+                    height: 34, padding: '0 .875rem', borderRadius: 'var(--r-full)',
+                    fontSize: '.8rem', fontWeight: 600, border: '1.5px solid',
+                    borderColor: catFilter === c ? 'var(--accent)' : 'var(--border)',
+                    background: catFilter === c ? 'var(--accent)' : 'var(--surface-2)',
+                    color: catFilter === c ? 'white' : 'var(--text-muted)',
+                    cursor: 'pointer', transition: 'all .2s',
+                  }}
+                  onClick={() => setCatFilter(c)}
+                >{c}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="data-table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center' }}>
+                    <span className="spinner dark" style={{ margin: '0 auto' }} />
+                  </td></tr>
+                ) : filtered.length === 0 ? (
+                  <tr className="empty-row"><td colSpan={5}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.75rem' }}>
+                      <span style={{ fontSize: '2rem', opacity: .3 }}>🍽️</span>
+                      <span>{search || catFilter !== 'All' ? 'No items match your filter' : 'No menu items yet — add one above!'}</span>
+                    </div>
+                  </td></tr>
+                ) : (
+                  filtered.map((item) => (
+                    <MenuRow key={item._id} item={item} onEdit={setEditing} onDelete={handleDeleteClick} deleting={deleting} />
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+
+      {itemToDelete && (
+        <div className="modal-overlay" onClick={() => setItemToDelete(null)}>
+          <div className="confirm-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-modal-card__icon" style={{ color: 'var(--danger)' }}>
+              <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+            </div>
+            <h3 className="confirm-modal-card__title">Delete Menu Item?</h3>
+            <p className="confirm-modal-card__text">
+              Are you sure you want to delete <strong>{itemToDelete.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="confirm-modal-card__actions">
+              <button className="confirm-modal-card__btn-no" onClick={() => setItemToDelete(null)}>
+                Cancel
+              </button>
+              <button className="confirm-modal-card__btn-yes is-danger" onClick={executeDelete}>
+                Delete Item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -19,6 +19,7 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
   const [refreshing, setRefreshing] = useState(false);
   const [completing, setCompleting] = useState(new Set()); // IDs being completed
   const [confirmingOrder, setConfirmingOrder] = useState(null);
+  const [orderToDelete,   setOrderToDelete]   = useState(null);
 
   const pollTimer = useRef(null);
 
@@ -96,67 +97,69 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
   }
 
   return (
-    <div className="orders-view">
-      {/* ── Header ── */}
-      <div className="orders-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-3)' }}>
-          <span className="orders-header__title">Active Orders</span>
-          {orders.length > 0 && (
-            <span className="orders-header__count">{orders.length}</span>
-          )}
-        </div>
-
-        <button
-          className={`btn-refresh ${refreshing ? 'spinning' : ''}`}
-          onClick={() => fetchOrders()}
-          aria-label="Refresh orders"
-          disabled={refreshing}
-        >
-          ↺
-        </button>
-      </div>
-
-      {/* ── Error banner ── */}
-      {error && (
-        <div className="alert alert-error">
-          <span className="alert-icon">⚠️</span>
-          {error}
-        </div>
-      )}
-
-      {/* ── Orders list / empty state ── */}
-      {orders.length === 0 && !error ? (
-        <div className="empty-state" style={{ flex: 1 }}>
-          <div className="empty-state__icon">🎉</div>
-          <div className="empty-state__title">No active orders</div>
-          <div className="empty-state__text">
-            All orders are completed. The floor is clear!
+    <>
+      <div className="orders-view">
+        {/* ── Header ── */}
+        <div className="orders-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-3)' }}>
+            <span className="orders-header__title">Active Orders</span>
+            {orders.length > 0 && (
+              <span className="orders-header__count">{orders.length}</span>
+            )}
           </div>
-        </div>
-      ) : (
-        <div className="orders-list">
-          {orders.map((order) => (
-            <OrderCard
-              key={order._id}
-              order={order}
-              onComplete={() => setConfirmingOrder(order)}
-              completing={completing.has(order._id)}
-              onAddItems={onAddItems}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
-      )}
 
-      {/* Polling note */}
-      <div style={{
-        textAlign: 'center',
-        fontSize: '0.7rem',
-        color: 'var(--text-dim)',
-        padding: 'var(--s-3)',
-        paddingBottom: 'calc(var(--s-3) + env(safe-area-inset-bottom))',
-      }}>
-        Auto-refreshes every 30 seconds
+          <button
+            className={`btn-refresh ${refreshing ? 'spinning' : ''}`}
+            onClick={() => fetchOrders()}
+            aria-label="Refresh orders"
+            disabled={refreshing}
+          >
+            ↺
+          </button>
+        </div>
+
+        {/* ── Error banner ── */}
+        {error && (
+          <div className="alert alert-error">
+            <span className="alert-icon">⚠️</span>
+            {error}
+          </div>
+        )}
+
+        {/* ── Orders list / empty state ── */}
+        {orders.length === 0 && !error ? (
+          <div className="empty-state" style={{ flex: 1 }}>
+            <div className="empty-state__icon">🎉</div>
+            <div className="empty-state__title">No active orders</div>
+            <div className="empty-state__text">
+              All orders are completed. The floor is clear!
+            </div>
+          </div>
+        ) : (
+          <div className="orders-list">
+            {orders.map((order) => (
+              <OrderCard
+                key={order._id}
+                order={order}
+                onComplete={() => setConfirmingOrder(order)}
+                completing={completing.has(order._id)}
+                onAddItems={onAddItems}
+                onDelete={() => setOrderToDelete(order)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Polling note */}
+        <div style={{
+          textAlign: 'center',
+          fontSize: '0.7rem',
+          color: 'var(--text-dim)',
+          padding: 'var(--s-3)',
+          paddingBottom: 'calc(var(--s-3) + env(safe-area-inset-bottom))',
+        }}>
+          Auto-refreshes every 30 seconds
+        </div>
       </div>
 
       {/* ── Confirmation Modal ── */}
@@ -191,6 +194,39 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
           </div>
         </div>
       )}
-    </div>
+
+      {/* ── Cancel/Delete Confirmation Modal ── */}
+      {orderToDelete && (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
+          <div className="confirm-modal-card">
+            <div className="confirm-modal-card__icon" style={{ color: 'var(--danger)' }}>🗑️</div>
+            <h3 id="delete-confirm-title" className="confirm-modal-card__title">Delete Order</h3>
+            <p className="confirm-modal-card__text">
+              Are you sure you want to cancel and delete the order for <strong>{orderToDelete.customerName}</strong> at <strong>{orderToDelete.tableId?.name || `Table ${orderToDelete.tableId?.tableNumber}`}</strong>?
+            </p>
+            <div className="confirm-modal-card__actions">
+              <button
+                type="button"
+                className="confirm-modal-card__btn-no"
+                onClick={() => setOrderToDelete(null)}
+              >
+                No
+              </button>
+              <button
+                type="button"
+                className="confirm-modal-card__btn-yes is-danger"
+                onClick={() => {
+                  const id = orderToDelete._id;
+                  setOrderToDelete(null);
+                  handleDelete(id);
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

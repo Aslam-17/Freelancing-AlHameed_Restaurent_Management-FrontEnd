@@ -7,7 +7,8 @@
 //   onDelete   — (id) => void
 //   onCancel   — () => void
 // ─────────────────────────────────────────────────────────────
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { tablesApi } from '../api/index.js';
 
 const CAPS = [3, 4, 5, 6, 8];
@@ -28,6 +29,7 @@ export default function TableForm({ table, onSaved, onDelete, onCancel }) {
   const [saving,  setSaving]  = useState(false);
   const [deleting,setDeleting]= useState(false);
   const [error,   setError]   = useState('');
+  const [tableToDelete, setTableToDelete] = useState(null);
 
   // Populate form when editing
   useEffect(() => {
@@ -85,12 +87,14 @@ export default function TableForm({ table, onSaved, onDelete, onCancel }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Delete table "${table.name || `T${table.tableNumber}`}"? This cannot be undone.`)) return;
+  const executeDelete = async () => {
+    if (!tableToDelete) return;
+    const id = tableToDelete._id;
+    setTableToDelete(null);
     setDeleting(true);
     try {
-      await tablesApi.delete(table._id);
-      onDelete(table._id);
+      await tablesApi.delete(id);
+      onDelete(id);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -204,13 +208,43 @@ export default function TableForm({ table, onSaved, onDelete, onCancel }) {
           <button
             type="button"
             className="btn btn-danger btn-full"
-            onClick={handleDelete}
+            onClick={() => setTableToDelete(table)}
             disabled={deleting}
           >
             {deleting ? <><span className="spinner" /> Deleting…</> : '🗑 Delete Table'}
           </button>
         )}
       </form>
+
+      {/* ── Cancel/Delete Table Confirmation Modal ── */}
+      {tableToDelete && createPortal(
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="table-delete-confirm-title">
+          <div className="confirm-modal-card">
+            <div className="confirm-modal-card__icon" style={{ color: 'var(--danger)' }}>🗑️</div>
+            <h3 id="table-delete-confirm-title" className="confirm-modal-card__title">Delete Table</h3>
+            <p className="confirm-modal-card__text">
+              Delete table "{tableToDelete.name || `T${tableToDelete.tableNumber}`}"? This cannot be undone.
+            </p>
+            <div className="confirm-modal-card__actions">
+              <button
+                type="button"
+                className="confirm-modal-card__btn-no"
+                onClick={() => setTableToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-modal-card__btn-yes is-danger"
+                onClick={executeDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

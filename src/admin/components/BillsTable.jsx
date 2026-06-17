@@ -5,6 +5,8 @@
 //   bills   — Bill[]
 //   loading — boolean
 // ─────────────────────────────────────────────────────────────
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const fmt = (n) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(n || 0);
@@ -18,6 +20,8 @@ const fmtDate = (str) => {
 };
 
 export default function BillsTable({ bills = [], loading, showDetailedItems = false, onDeleteBill }) {
+  const [billToDelete, setBillToDelete] = useState(null);
+
   return (
     <div className="data-table-wrap">
       <table className="data-table">
@@ -94,11 +98,7 @@ export default function BillsTable({ bills = [], loading, showDetailedItems = fa
                     <td>
                       <button
                         className="btn btn-danger btn-sm"
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this bill?')) {
-                            onDeleteBill(bill._id);
-                          }
-                        }}
+                        onClick={() => setBillToDelete(bill)}
                       >
                         🗑 Delete
                       </button>
@@ -110,6 +110,40 @@ export default function BillsTable({ bills = [], loading, showDetailedItems = fa
           )}
         </tbody>
       </table>
+
+      {/* ── Cancel/Delete Bill Confirmation Modal ── */}
+      {billToDelete && createPortal(
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="bill-delete-confirm-title">
+          <div className="confirm-modal-card">
+            <div className="confirm-modal-card__icon" style={{ color: 'var(--danger)' }}>🗑️</div>
+            <h3 id="bill-delete-confirm-title" className="confirm-modal-card__title">Delete Bill</h3>
+            <p className="confirm-modal-card__text">
+              Are you sure you want to permanently delete this bill from the archive? This action cannot be undone.
+            </p>
+            <div className="confirm-modal-card__actions">
+              <button
+                type="button"
+                className="confirm-modal-card__btn-no"
+                onClick={() => setBillToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-modal-card__btn-yes is-danger"
+                onClick={() => {
+                  const id = billToDelete._id;
+                  setBillToDelete(null);
+                  onDeleteBill(id);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

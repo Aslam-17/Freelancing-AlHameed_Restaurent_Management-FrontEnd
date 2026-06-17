@@ -106,11 +106,7 @@ export default function OrderCard({ order, onComplete, completing, onAddItems, o
           <button
             type="button"
             className="btn-delete-order"
-            onClick={() => {
-              if (window.confirm("Are you sure you want to cancel and delete this order?")) {
-                onDelete?.(order._id);
-              }
-            }}
+            onClick={() => onDelete?.()}
             disabled={completing}
             aria-label={`Cancel order for ${order.customerName}`}
           >
