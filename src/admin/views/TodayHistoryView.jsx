@@ -129,7 +129,7 @@ export default function TodayHistoryView() {
         </div>
 
         {/* ── Table (reuses BillsTable) ── */}
-        <BillsTable bills={bills} loading={loading} />
+        <BillsTable bills={bills} loading={loading} showDetailedItems={true} />
 
         {/* ── Revenue footer ── */}
         {!loading && bills.length > 0 && (

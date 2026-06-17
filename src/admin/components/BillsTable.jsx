@@ -17,7 +17,7 @@ const fmtDate = (str) => {
   });
 };
 
-export default function BillsTable({ bills = [], loading }) {
+export default function BillsTable({ bills = [], loading, showDetailedItems = false }) {
   return (
     <div className="data-table-wrap">
       <table className="data-table">
@@ -68,7 +68,22 @@ export default function BillsTable({ bills = [], loading }) {
                       )}
                     </div>
                   </td>
-                  <td className="td-muted">{itemCount} item{itemCount !== 1 ? 's' : ''}</td>
+                  <td className="td-muted">
+                    {showDetailedItems ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '.15rem', fontSize: '.8rem' }}>
+                        {(bill.items ?? []).map((item, idx) => {
+                          const name = item.menuItem?.name ?? 'Unknown item';
+                          return (
+                            <div key={idx} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{item.quantity}x</span> {name}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      `${itemCount} item${itemCount !== 1 ? 's' : ''}`
+                    )}
+                  </td>
                   <td className="td-muted">
                     {bill.gstApplied ? fmt(bill.gstApplied) : '—'}
                     {bill.gstPercentage ? ` (${bill.gstPercentage}%)` : ''}
