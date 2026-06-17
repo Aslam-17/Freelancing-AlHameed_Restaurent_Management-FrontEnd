@@ -841,6 +841,17 @@ a { color: inherit; text-decoration: none; }
 .btn-add-items:active   { transform: scale(.96); box-shadow: none; }
 .btn-add-items:disabled { opacity: .6; cursor: not-allowed; }
 
+.btn-delete-order {
+  display: flex; align-items: center; justify-content: center; gap: var(--s-1);
+  height: 46px; padding: 0 var(--s-4); border-radius: var(--r-lg);
+  background: transparent; border: 1.5px solid var(--danger); color: var(--danger);
+  font-size: .9rem; font-weight: 700; cursor: pointer;
+  transition: all var(--transition); flex-shrink: 0;
+}
+.btn-delete-order:active   { transform: scale(.96); }
+.btn-delete-order:hover    { background: var(--danger-dim); }
+.btn-delete-order:disabled { opacity: .6; cursor: not-allowed; }
+
 /* ── W15. Waiter Login ───────────────────────────────────────── */
 .login-view {
   min-height: 100dvh; display: flex; flex-direction: column;

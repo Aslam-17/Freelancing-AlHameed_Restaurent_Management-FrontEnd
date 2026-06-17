@@ -20,7 +20,7 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 3600)}h ago`;
 }
 
-export default function OrderCard({ order, onComplete, completing, onAddItems }) {
+export default function OrderCard({ order, onComplete, completing, onAddItems, onDelete }) {
   // ── Derive table label ──────────────────────────────────
   const tableLabel = order.tableId
     ? (order.tableId.name || `Table ${order.tableId.tableNumber}`)
@@ -42,8 +42,8 @@ export default function OrderCard({ order, onComplete, completing, onAddItems })
         {/* Table badge */}
         <div className="order-card__table-badge">
           {order.tableId?.tableNumber
-            ? <>T<br />{order.tableId.tableNumber}</>
-            : '?'}
+             ? <>T<br />{order.tableId.tableNumber}</>
+             : '?'}
         </div>
 
         {/* Customer info + time */}
@@ -103,6 +103,20 @@ export default function OrderCard({ order, onComplete, completing, onAddItems })
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--s-2)', flexShrink: 0 }}>
+          <button
+            type="button"
+            className="btn-delete-order"
+            onClick={() => {
+              if (window.confirm("Are you sure you want to cancel and delete this order?")) {
+                onDelete?.(order._id);
+              }
+            }}
+            disabled={completing}
+            aria-label={`Cancel order for ${order.customerName}`}
+          >
+            🗑 Delete
+          </button>
+
           <button
             type="button"
             className="btn-add-items"

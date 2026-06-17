@@ -70,6 +70,21 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
     }
   };
 
+  // ── Delete/Cancel an order ──────────────────────────────────
+  const handleDelete = async (id) => {
+    try {
+      await ordersApi.delete(id);
+      // Optimistically remove from UI
+      setOrders((prev) => {
+        const updated = prev.filter((o) => o._id !== id);
+        onOrdersChange?.(updated);
+        return updated;
+      });
+    } catch (err) {
+      setError(`Failed to cancel order: ${err.message}`);
+    }
+  };
+
   // ── Loading skeleton ─────────────────────────────────────
   if (loading) {
     return (
@@ -127,6 +142,7 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
               onComplete={() => setConfirmingOrder(order)}
               completing={completing.has(order._id)}
               onAddItems={onAddItems}
+              onDelete={handleDelete}
             />
           ))}
         </div>

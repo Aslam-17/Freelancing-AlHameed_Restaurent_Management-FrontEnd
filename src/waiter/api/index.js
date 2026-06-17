@@ -68,6 +68,7 @@ export const ordersApi = {
   create:    (data) => request('POST', '/orders', data),
   getActive: ()     => request('GET',  '/orders/active'),
   complete:  (id)   => request('POST', `/orders/${id}/complete`),
+  delete:    (id)   => request('DELETE', `/orders/${id}`),
 };
 
 // ── Bills (waiter access — today's completed orders) ─────────
