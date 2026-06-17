@@ -7,7 +7,9 @@ import { settingsApi } from '../api/index.js';
 
 export default function GstSettingsForm() {
   const [currentGst, setCurrentGst] = useState(null);
-  const [input,      setInput]      = useState('');
+  const [currentAcCharge, setCurrentAcCharge] = useState(null);
+  const [inputGst,      setInputGst]      = useState('');
+  const [inputAcCharge, setInputAcCharge] = useState('');
   const [loading,    setLoading]    = useState(true);
   const [saving,     setSaving]     = useState(false);
   const [success,    setSuccess]    = useState('');
@@ -19,8 +21,11 @@ export default function GstSettingsForm() {
       try {
         const res = await settingsApi.get();
         const pct = res.data?.currentGstPercentage ?? 5;
+        const ac = res.data?.acChargePerPerson ?? 0;
         setCurrentGst(pct);
-        setInput(String(pct));
+        setInputGst(String(pct));
+        setCurrentAcCharge(ac);
+        setInputAcCharge(String(ac));
       } catch (e) {
         setError(e.message);
       } finally {
@@ -31,18 +36,24 @@ export default function GstSettingsForm() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    const val = parseFloat(input);
-    if (isNaN(val) || val < 0 || val > 100) {
-      setError('Enter a valid percentage between 0 and 100.');
+    const valGst = parseFloat(inputGst);
+    const valAc = parseFloat(inputAcCharge);
+    if (isNaN(valGst) || valGst < 0 || valGst > 100) {
+      setError('Enter a valid GST percentage between 0 and 100.');
+      return;
+    }
+    if (isNaN(valAc) || valAc < 0) {
+      setError('Enter a valid AC Charge amount.');
       return;
     }
     setError('');
     setSuccess('');
     setSaving(true);
     try {
-      await settingsApi.updateGst(val);
-      setCurrentGst(val);
-      setSuccess(`GST updated to ${val}% successfully.`);
+      await settingsApi.updateSettings({ gstPercentage: valGst, acChargePerPerson: valAc });
+      setCurrentGst(valGst);
+      setCurrentAcCharge(valAc);
+      setSuccess(`Settings updated successfully.`);
       setTimeout(() => setSuccess(''), 3500);
     } catch (e) {
       setError(e.message);
@@ -54,9 +65,9 @@ export default function GstSettingsForm() {
   return (
     <div className="panel">
       <div className="panel__header">
-        <span className="panel__title">⚙️ GST Configuration</span>
+        <span className="panel__title">⚙️ System Settings</span>
         {!loading && currentGst !== null && (
-          <span className="badge badge-muted">Current: {currentGst}%</span>
+          <span className="badge badge-muted">GST: {currentGst}% | AC: ₹{currentAcCharge}</span>
         )}
       </div>
       <div className="panel__body">
@@ -72,34 +83,53 @@ export default function GstSettingsForm() {
         )}
 
         <form className="gst-form" onSubmit={handleSave} noValidate>
-          <div className="form-group">
-            <label className="form-label" htmlFor="gst-pct">
-              New GST Percentage <span>*</span>
-            </label>
-            <input
-              id="gst-pct"
-              className="form-input"
-              type="number"
-              min={0} max={100} step={0.5}
-              placeholder={loading ? 'Loading…' : 'e.g. 18'}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              disabled={loading}
-              style={{ maxWidth: 200 }}
-            />
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" htmlFor="gst-pct">
+                GST Percentage <span>*</span>
+              </label>
+              <input
+                id="gst-pct"
+                className="form-input"
+                type="number"
+                min={0} max={100} step={0.5}
+                placeholder={loading ? 'Loading…' : 'e.g. 18'}
+                value={inputGst}
+                onChange={(e) => setInputGst(e.target.value)}
+                disabled={loading}
+                style={{ maxWidth: 200 }}
+              />
+            </div>
+            
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" htmlFor="ac-charge">
+                AC Extra Charge (Per Person) <span>*</span>
+              </label>
+              <input
+                id="ac-charge"
+                className="form-input"
+                type="number"
+                min={0} step={1}
+                placeholder={loading ? 'Loading…' : 'e.g. 50'}
+                value={inputAcCharge}
+                onChange={(e) => setInputAcCharge(e.target.value)}
+                disabled={loading}
+                style={{ maxWidth: 200 }}
+              />
+            </div>
           </div>
           <button
             className="btn btn-primary"
             type="submit"
             disabled={saving || loading}
           >
-            {saving ? <><span className="spinner" /> Saving…</> : '💾 Save GST'}
+            {saving ? <><span className="spinner" /> Saving…</> : '💾 Save Settings'}
           </button>
         </form>
 
         <p className="text-dim" style={{ marginTop: '.75rem' }}>
-          This GST % is applied globally when a waiter finalises (completes) an order.
-          It takes effect immediately for all new completions.
+          These settings take effect immediately for all new completions.
+          AC charge is only applied to tables in an AC zone.
         </p>
       </div>
     </div>

@@ -12,6 +12,7 @@ import { useState } from 'react';
 export default function CustomerForm({ table, onSubmit, onBack }) {
   const [name,  setName]  = useState('');
   const [phone, setPhone] = useState('');
+  const [numberOfPeople, setNumberOfPeople] = useState('');
   const [errors, setErrors] = useState({});
 
   const validate = () => {
@@ -21,6 +22,10 @@ export default function CustomerForm({ table, onSubmit, onBack }) {
     if (phone && !/^[0-9+\-\s()]{7,15}$/.test(phone.trim())) {
       e.phone = 'Enter a valid phone number (7–15 digits).';
     }
+    const num = parseInt(numberOfPeople, 10);
+    if (!numberOfPeople || isNaN(num) || num < 1) {
+      e.numberOfPeople = 'Enter a valid number of people (min 1).';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -28,7 +33,7 @@ export default function CustomerForm({ table, onSubmit, onBack }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      onSubmit({ name: name.trim(), phone: phone.trim() });
+      onSubmit({ name: name.trim(), phone: phone.trim(), numberOfPeople: parseInt(numberOfPeople, 10) });
     }
   };
 
@@ -94,6 +99,25 @@ export default function CustomerForm({ table, onSubmit, onBack }) {
           />
           {errors.phone && <span className="form-error">{errors.phone}</span>}
           {!errors.phone && <span className="form-hint">Optional — for receipts or delivery.</span>}
+        </div>
+
+        {/* Number of People */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="cust-people">
+            Number of People <span>*</span>
+          </label>
+          <input
+            id="cust-people"
+            className={`form-input ${errors.numberOfPeople ? 'has-error' : ''}`}
+            type="number"
+            min="1"
+            placeholder="e.g. 2"
+            value={numberOfPeople}
+            onChange={(e) => { setNumberOfPeople(e.target.value); setErrors((p) => ({ ...p, numberOfPeople: '' })); }}
+            autoComplete="off"
+            inputMode="numeric"
+          />
+          {errors.numberOfPeople && <span className="form-error">{errors.numberOfPeople}</span>}
         </div>
       </div>
 

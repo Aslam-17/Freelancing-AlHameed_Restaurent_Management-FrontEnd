@@ -17,7 +17,7 @@ const fmtDate = (str) => {
   });
 };
 
-export default function BillsTable({ bills = [], loading, showDetailedItems = false }) {
+export default function BillsTable({ bills = [], loading, showDetailedItems = false, onDeleteBill }) {
   return (
     <div className="data-table-wrap">
       <table className="data-table">
@@ -30,6 +30,7 @@ export default function BillsTable({ bills = [], loading, showDetailedItems = fa
             <th>Items</th>
             <th>GST</th>
             <th>Total</th>
+            {onDeleteBill && <th>Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -39,7 +40,7 @@ export default function BillsTable({ bills = [], loading, showDetailedItems = fa
             </td></tr>
           ) : bills.length === 0 ? (
             <tr className="empty-row">
-              <td colSpan={7}>
+              <td colSpan={onDeleteBill ? 8 : 7}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.75rem' }}>
                   <span style={{ fontSize: '2.5rem', opacity: .3 }}>🧾</span>
                   <span>No bills found</span>
@@ -89,6 +90,20 @@ export default function BillsTable({ bills = [], loading, showDetailedItems = fa
                     {bill.gstPercentage ? ` (${bill.gstPercentage}%)` : ''}
                   </td>
                   <td className="td-amount">{fmt(bill.totalAmount)}</td>
+                  {onDeleteBill && (
+                    <td>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to delete this bill?')) {
+                            onDeleteBill(bill._id);
+                          }
+                        }}
+                      >
+                        🗑 Delete
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })

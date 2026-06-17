@@ -17,6 +17,7 @@ const fmtDate = (str) =>
 function AddWaiterForm({ onSaved, onCancel }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('Waiter');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -26,7 +27,7 @@ function AddWaiterForm({ onSaved, onCancel }) {
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setError(''); setSaving(true);
     try {
-      await usersApi.create({ username: username.trim().toLowerCase(), password });
+      await usersApi.create({ username: username.trim().toLowerCase(), password, role });
       onSaved();
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }
@@ -52,10 +53,17 @@ function AddWaiterForm({ onSaved, onCancel }) {
               <input id="w-pass" className="form-input" type="password" placeholder="Min 6 characters"
                 value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
             </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="w-role">Role <span>*</span></label>
+              <select id="w-role" className="form-input" value={role} onChange={(e) => setRole(e.target.value)}>
+                <option value="Waiter">Waiter</option>
+                <option value="Admin">Admin</option>
+              </select>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '.75rem' }}>
             <button className="btn btn-primary" type="submit" disabled={saving}>
-              {saving ? <><span className="spinner" /> Creating…</> : '➕ Create Waiter'}
+              {saving ? <><span className="spinner" /> Creating…</> : '➕ Create Account'}
             </button>
             <button className="btn btn-secondary" type="button" onClick={onCancel}>Cancel</button>
           </div>
@@ -147,7 +155,11 @@ function WaiterRow({ waiter, onDeleted, onUpdated }) {
         )}
       </td>
       {/* Role */}
-      <td><span className="badge badge-muted">Waiter</span></td>
+      <td>
+        <span className={`badge ${waiter.role === 'Admin' ? 'badge-primary' : 'badge-muted'}`}>
+          {waiter.role || 'Waiter'}
+        </span>
+      </td>
       {/* Created */}
       <td className="td-muted">{fmtDate(waiter.createdAt)}</td>
       {/* Password */}
@@ -177,31 +189,31 @@ function WaiterRow({ waiter, onDeleted, onUpdated }) {
 
 // ── Main view ─────────────────────────────────────────────────
 export default function WaitersView() {
-  const [waiters, setWaiters] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
 
-  const fetchWaiters = useCallback(async () => {
+  const fetchStaff = useCallback(async () => {
     setError('');
-    try { const res = await usersApi.listWaiters(); setWaiters(res.data ?? []); }
+    try { const res = await usersApi.listStaff(); setStaff(res.data ?? []); }
     catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchWaiters(); }, [fetchWaiters]);
+  useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
   return (
     <div className="view-animate" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div className="page-header">
         <div>
-          <div className="page-header__breadcrumb">Admin › Waiters</div>
-          <div className="page-header__title">👤 Waiter Management</div>
+          <div className="page-header__breadcrumb">Admin › Staff Management</div>
+          <div className="page-header__title">👤 Staff Management</div>
         </div>
         <div className="page-header__actions">
-          <span className="badge badge-muted">{waiters.length} waiter{waiters.length !== 1 ? 's' : ''}</span>
+          <span className="badge badge-muted">{staff.length} member{staff.length !== 1 ? 's' : ''}</span>
           <button className="btn btn-primary btn-sm" onClick={() => setShowForm((v) => !v)}>
-            {showForm ? '✕ Cancel' : '➕ Add Waiter'}
+            {showForm ? '✕ Cancel' : '➕ Add Staff'}
           </button>
         </div>
       </div>
@@ -212,7 +224,7 @@ export default function WaitersView() {
         {/* Add form */}
         {showForm && (
           <AddWaiterForm
-            onSaved={() => { setShowForm(false); fetchWaiters(); }}
+            onSaved={() => { setShowForm(false); fetchStaff(); }}
             onCancel={() => setShowForm(false)}
           />
         )}
@@ -220,7 +232,7 @@ export default function WaitersView() {
         {/* Info */}
         <div className="alert" style={{ background: 'var(--info-dim)', border: '1px solid rgba(56,189,248,.2)', color: 'rgba(186,230,253,.8)', marginBottom: '1.25rem' }}>
           <span>ℹ️</span>
-          About managing the waiters
+          About managing the staff accounts
         </div>
 
         {/* Table */}
@@ -240,20 +252,20 @@ export default function WaitersView() {
                 <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center' }}>
                   <span className="spinner dark" style={{ margin: '0 auto' }} />
                 </td></tr>
-              ) : waiters.length === 0 ? (
+              ) : staff.length === 0 ? (
                 <tr className="empty-row"><td colSpan={5}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.75rem' }}>
                     <span style={{ fontSize: '2rem', opacity: .3 }}>👤</span>
-                    <span>No waiter accounts yet — add one above.</span>
+                    <span>No staff accounts yet — add one above.</span>
                   </div>
                 </td></tr>
               ) : (
-                waiters.map((w) => (
+                staff.map((w) => (
                   <WaiterRow
                     key={w._id}
                     waiter={w}
-                    onDeleted={(id) => setWaiters((p) => p.filter((x) => x._id !== id))}
-                    onUpdated={fetchWaiters}
+                    onDeleted={(id) => setStaff((p) => p.filter((x) => x._id !== id))}
+                    onUpdated={fetchStaff}
                   />
                 ))
               )}

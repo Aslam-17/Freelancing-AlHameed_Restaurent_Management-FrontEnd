@@ -72,12 +72,14 @@ export const billsApi = {
   },
   getAnalytics: () => request('GET', '/bills/analytics'),
   getItemSales: (period = 'today') => request('GET', `/bills/item-sales?period=${period}`),
+  delete:       (id) => request('DELETE', `/bills/${id}`),
 };
 
 // ── Settings ──────────────────────────────────────────────────
 export const settingsApi = {
   get:       ()    => request('GET', '/settings'),
   updateGst: (pct) => request('PUT', '/settings/gst', { gstPercentage: pct }),
+  updateSettings: (data) => request('PUT', '/settings/gst', data),
 };
 
 // ── Menu Items ────────────────────────────────────────────────
@@ -88,9 +90,9 @@ export const menuApi = {
   delete:  (id)       => request('DELETE', `/menu/${id}`),
 };
 
-// ── Users (Waiter management) ─────────────────────────────────
+// ── Users (Staff management) ─────────────────────────────────
 export const usersApi = {
-  listWaiters:   ()             => request('GET',    '/users'),
+  listStaff:     ()             => request('GET',    '/users'),
   create:        (data)         => request('POST',   '/users', data),
   update:        (id, data)     => request('PUT',    `/users/${id}`, data),
   resetPassword: (id, password) => request('PUT',    `/users/${id}/password`, { password }),

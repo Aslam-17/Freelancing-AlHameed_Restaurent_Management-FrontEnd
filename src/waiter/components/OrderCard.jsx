@@ -87,6 +87,13 @@ export default function OrderCard({ order, onComplete, completing, onAddItems })
             </div>
           );
         })}
+        {(order.acCharge || 0) > 0 && (
+          <div className="order-card__item" style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-subtle)' }}>
+            <span className="order-card__item-qty" style={{ visibility: 'hidden' }}>1×</span>
+            <span className="order-card__item-name" style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>AC Seating Charge</span>
+            <span className="order-card__item-price">{formatCurrency(order.acCharge)}</span>
+          </div>
+        )}
       </div>
 
       <div className="order-card__footer" style={{ gap: 'var(--s-2)' }}>

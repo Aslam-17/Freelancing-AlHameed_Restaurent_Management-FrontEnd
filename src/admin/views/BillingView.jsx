@@ -42,6 +42,15 @@ export default function BillingView() {
     return () => clearTimeout(debounce.current);
   }, [search, fetchBills]);
 
+  const handleDeleteBill = async (id) => {
+    try {
+      await billsApi.delete(id);
+      setBills(prev => prev.filter(b => b._id !== id));
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   // Summary stats from the loaded bills
   const totalRev = bills.reduce((s, b) => s + (b.totalAmount || 0), 0);
 
@@ -117,7 +126,7 @@ export default function BillingView() {
         </div>
 
         {/* Bills table */}
-        <BillsTable bills={bills} loading={loading} />
+        <BillsTable bills={bills} loading={loading} onDeleteBill={handleDeleteBill} />
       </div>
     </div>
   );

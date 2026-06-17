@@ -95,7 +95,7 @@ export default function App() {
   const handleOrdersAddItems = (order) => {
     setGetOrderParams({
       table: order.tableId,
-      customer: { name: order.customerName, phone: order.customerPhone || '' },
+      customer: { name: order.customerName, phone: order.customerPhone || '', numberOfPeople: order.numberOfPeople || 1 },
       step: 2,
       existingItems: order.items,
       orderId: order._id

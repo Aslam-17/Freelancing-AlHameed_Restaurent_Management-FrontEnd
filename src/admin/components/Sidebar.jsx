@@ -4,8 +4,8 @@ const NAV_SECTIONS = [
   {
     label: 'Overview',
     items: [
-      { view: 'dashboard',    icon: '📊', label: 'Dashboard' },
-      { view: 'liveorders',   icon: '🔴', label: 'Live Orders' },
+      { view: 'dashboard', icon: '📊', label: 'Dashboard' },
+      { view: 'liveorders', icon: '🔴', label: 'Live Orders' },
       { view: 'todayhistory', icon: '📜', label: "Today's History" },
     ],
   },
@@ -21,8 +21,8 @@ const NAV_SECTIONS = [
     label: 'Finance',
     items: [
       { view: 'billing', icon: '🧾', label: 'Billing' },
-      { view: 'sales',   icon: '📈', label: 'Food Sales' },
-      { view: 'gst',     icon: '⚙️', label: 'GST Settings' },
+      { view: 'sales', icon: '📈', label: 'Food Sales' },
+      { view: 'gst', icon: '⚙️', label: 'Bill config' },
     ],
   },
 ];

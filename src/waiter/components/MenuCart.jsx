@@ -114,6 +114,7 @@ export default function MenuCart({ table, customer, onDone, onBack, isExistingOr
         tableId:       table._id,
         customerName:  customer.name,
         customerPhone: customer.phone || undefined,
+        numberOfPeople: customer.numberOfPeople,
         items:         orderItems,
         orderId:       orderId,
       });
@@ -206,6 +207,29 @@ export default function MenuCart({ table, customer, onDone, onBack, isExistingOr
         </div>
       </div>
 
+      {/* ── Cart summary bar (sticky top) ── */}
+      {hasItems && (
+        <div className="cart-bar">
+          <div className="cart-bar__summary">
+            <div className="cart-bar__items">
+              🛒 {cartItemsCnt} item{cartItemsCnt > 1 ? 's' : ''} selected
+            </div>
+            <div className="cart-bar__total">{formatCurrency(cartTotal)}</div>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <><span className="spinner" /> {isExistingOrder ? 'Updating Order…' : 'Placing Order…'}</>
+            ) : (
+              isExistingOrder ? '✅ Add to Order' : '✅ Place Order'
+            )}
+          </button>
+        </div>
+      )}
+
       {/* ── Menu list ── */}
       {submitErr && (
         <div className="alert alert-error" style={{ margin: 'var(--s-3) var(--s-4) 0' }}>
@@ -264,29 +288,6 @@ export default function MenuCart({ table, customer, onDone, onBack, isExistingOr
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* ── Cart summary bar (fixed bottom) ── */}
-      {hasItems && (
-        <div className="cart-bar">
-          <div className="cart-bar__summary">
-            <div className="cart-bar__items">
-              🛒 {cartItemsCnt} item{cartItemsCnt > 1 ? 's' : ''} selected
-            </div>
-            <div className="cart-bar__total">{formatCurrency(cartTotal)}</div>
-          </div>
-          <button
-            className="btn btn-primary"
-            onClick={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <><span className="spinner" /> {isExistingOrder ? 'Updating Order…' : 'Placing Order…'}</>
-            ) : (
-              isExistingOrder ? '✅ Add to Order' : '✅ Place Order'
-            )}
-          </button>
         </div>
       )}
     </div>

@@ -42,6 +42,15 @@ export default function TodayHistoryView() {
     return () => clearTimeout(debounce.current);
   }, [search, fetchBills]);
 
+  const handleDeleteBill = async (id) => {
+    try {
+      await billsApi.delete(id);
+      setBills(prev => prev.filter(b => b._id !== id));
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   // Summary stats
   const totalRev   = bills.reduce((s, b) => s + (b.totalAmount || 0), 0);
   const totalItems = bills.reduce((s, b) => s + (b.items ?? []).reduce((q, i) => q + i.quantity, 0), 0);
@@ -129,7 +138,7 @@ export default function TodayHistoryView() {
         </div>
 
         {/* ── Table (reuses BillsTable) ── */}
-        <BillsTable bills={bills} loading={loading} showDetailedItems={true} />
+        <BillsTable bills={bills} loading={loading} showDetailedItems={true} onDeleteBill={handleDeleteBill} />
 
         {/* ── Revenue footer ── */}
         {!loading && bills.length > 0 && (
