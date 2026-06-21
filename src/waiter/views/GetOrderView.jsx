@@ -18,7 +18,7 @@ import MenuCart       from '../components/MenuCart.jsx';
 
 const STEPS = ['Floor Plan', 'Customer', 'Menu'];
 
-export default function GetOrderView({ occupiedTableIds, activeOrders = [], onRefreshOrders, initialParams, onResetParams }) {
+export default function GetOrderView({ occupiedTableIds, activeOrders = [], onRefreshOrders, initialParams, onResetParams, orderType = 'Dine-in' }) {
   const [selectedTable,   setSelectedTable]   = useState(initialParams?.table ?? null);
   const [customerDetails, setCustomerDetails] = useState(initialParams?.customer ?? null);
   const [step,            setStep]            = useState(initialParams?.step ?? 0);
@@ -149,6 +149,7 @@ export default function GetOrderView({ occupiedTableIds, activeOrders = [], onRe
             isExistingOrder={isExistingOrder}
             initialItems={initialParams?.existingItems}
             orderId={initialParams?.orderId}
+            orderType={orderType}
           />
         )}
       </div>

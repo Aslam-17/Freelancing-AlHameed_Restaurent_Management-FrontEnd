@@ -15,7 +15,7 @@ import { menuApi, ordersApi } from '../api/index.js';
 const formatCurrency = (n) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(n);
 
-export default function MenuCart({ table, customer, onDone, onBack, isExistingOrder, initialItems = [], orderId }) {
+export default function MenuCart({ table, customer, onDone, onBack, isExistingOrder, initialItems = [], orderId, orderType = 'Dine-in' }) {
   const [items,     setItems]     = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState('');
@@ -111,7 +111,8 @@ export default function MenuCart({ table, customer, onDone, onBack, isExistingOr
 
     try {
       await ordersApi.create({
-        tableId:       table._id,
+        orderType,
+        tableId:       table?._id,
         customerName:  customer.name,
         customerPhone: customer.phone || undefined,
         numberOfPeople: customer.numberOfPeople,

@@ -44,6 +44,13 @@ export default function LoginView({ onLogin }) {
         return;
       }
 
+      // Billers have their own dedicated console
+      if (res.user?.role === 'Biller') {
+        saveToken(res.token);
+        window.location.href = '/biller';
+        return;
+      }
+
       saveToken(res.token);
       onLogin(res.token, res.user);
     } catch (err) {

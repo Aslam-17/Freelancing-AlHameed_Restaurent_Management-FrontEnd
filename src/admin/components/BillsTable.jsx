@@ -29,6 +29,7 @@ export default function BillsTable({ bills = [], loading, showDetailedItems = fa
           <tr>
             <th>Date & Time</th>
             <th>Customer</th>
+            <th>Type</th>
             <th>Phone</th>
             <th>Table</th>
             <th>Items</th>
@@ -39,12 +40,12 @@ export default function BillsTable({ bills = [], loading, showDetailedItems = fa
         </thead>
         <tbody>
           {loading ? (
-            <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>
+            <tr><td colSpan={onDeleteBill ? 9 : 8} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>
               <span className="spinner dark" style={{ margin: '0 auto' }} />
             </td></tr>
           ) : bills.length === 0 ? (
             <tr className="empty-row">
-              <td colSpan={onDeleteBill ? 8 : 7}>
+              <td colSpan={onDeleteBill ? 9 : 8}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.75rem' }}>
                   <span style={{ fontSize: '2.5rem', opacity: .3 }}>🧾</span>
                   <span>No bills found</span>
@@ -62,6 +63,23 @@ export default function BillsTable({ bills = [], loading, showDetailedItems = fa
                 <tr key={bill._id}>
                   <td className="td-muted">{fmtDate(bill.createdAt)}</td>
                   <td style={{ fontWeight: 600 }}>{bill.customerName}</td>
+                  <td>
+                    {bill.orderType === 'Takeaway' ? (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        padding: '2px 8px', borderRadius: '99px', fontSize: '0.72rem',
+                        fontWeight: 700, background: 'rgba(251,146,60,.15)',
+                        border: '1px solid rgba(251,146,60,.4)', color: '#fb923c',
+                      }}>🛵 Takeaway</span>
+                    ) : (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        padding: '2px 8px', borderRadius: '99px', fontSize: '0.72rem',
+                        fontWeight: 700, background: 'rgba(34,197,94,.12)',
+                        border: '1px solid rgba(34,197,94,.3)', color: '#4ade80',
+                      }}>🪑 Dine-in</span>
+                    )}
+                  </td>
                   <td className="td-muted">{bill.customerPhone || '—'}</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>

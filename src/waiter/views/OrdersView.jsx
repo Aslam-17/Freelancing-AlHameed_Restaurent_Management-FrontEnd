@@ -7,12 +7,14 @@
 //   onOrdersChange — (orders) => void  (notifies App for the badge count)
 // ─────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import { ordersApi } from '../api/index.js';
 import OrderCard from '../components/OrderCard.jsx';
+import ReceiptTemplate from '../../biller/components/ReceiptTemplate.jsx';
 
 const POLL_INTERVAL = 30_000; // 30 seconds
 
-export default function OrdersView({ onOrdersChange, onAddItems }) {
+export default function OrdersView({ onOrdersChange, onAddItems, user }) {
   const [orders,     setOrders]     = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState('');
@@ -20,8 +22,21 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
   const [completing, setCompleting] = useState(new Set()); // IDs being completed
   const [confirmingOrder, setConfirmingOrder] = useState(null);
   const [orderToDelete,   setOrderToDelete]   = useState(null);
+  const [printingOrder,   setPrintingOrder]   = useState(null);
+  const [warningOrder,    setWarningOrder]    = useState(null);
+  const [printedOrders,   setPrintedOrders]   = useState(new Set());
 
   const pollTimer = useRef(null);
+  const printRef  = useRef(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    onAfterPrint: () => {
+      if (printingOrder) {
+        setPrintedOrders((prev) => new Set(prev).add(printingOrder._id));
+      }
+    }
+  });
 
   // ── Fetch active orders ───────────────────────────────────
   const fetchOrders = useCallback(async (silent = false) => {
@@ -50,15 +65,23 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
   }, [fetchOrders]);
 
   // ── Complete an order ────────────────────────────────────
-  const handleComplete = async (id) => {
+  const handleComplete = async (order) => {
+    const id = order._id;
     setCompleting((prev) => new Set(prev).add(id));
     try {
       await ordersApi.complete(id);
+
       // Optimistically remove from UI
       setOrders((prev) => {
         const updated = prev.filter((o) => o._id !== id);
         onOrdersChange?.(updated);
         return updated;
+      });
+      // Clear printed state
+      setPrintedOrders((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
       });
     } catch (err) {
       setError(`Failed to complete order: ${err.message}`);
@@ -69,6 +92,13 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
         return next;
       });
     }
+  };
+
+  const handlePrintClick = (order) => {
+    setPrintingOrder(order);
+    setTimeout(() => {
+      handlePrint();
+    }, 100);
   };
 
   // ── Delete/Cancel an order ──────────────────────────────────
@@ -141,10 +171,18 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
               <OrderCard
                 key={order._id}
                 order={order}
-                onComplete={() => setConfirmingOrder(order)}
+                onComplete={() => {
+                  if (!printedOrders.has(order._id)) {
+                    setWarningOrder(order);
+                  } else {
+                    setConfirmingOrder(order);
+                  }
+                }}
                 completing={completing.has(order._id)}
                 onAddItems={onAddItems}
                 onDelete={() => setOrderToDelete(order)}
+                onPrint={(!user || user.role === 'Biller' || user.role === 'Admin') ? () => handlePrintClick(order) : undefined}
+                canComplete={!user || user.role === 'Biller' || user.role === 'Admin'}
               />
             ))}
           </div>
@@ -183,9 +221,9 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
                 type="button"
                 className="confirm-modal-card__btn-yes"
                 onClick={() => {
-                  const id = confirmingOrder._id;
+                  const order = confirmingOrder;
                   setConfirmingOrder(null);
-                  handleComplete(id);
+                  handleComplete(order);
                 }}
               >
                 Yes
@@ -227,6 +265,45 @@ export default function OrdersView({ onOrdersChange, onAddItems }) {
           </div>
         </div>
       )}
+
+      {/* ── Warning Confirmation Modal ── */}
+      {warningOrder && (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="warning-title">
+          <div className="confirm-modal-card">
+            <div className="confirm-modal-card__icon" style={{ color: '#eab308' }}>⚠️</div>
+            <h3 id="warning-title" className="confirm-modal-card__title">Bill Not Printed!</h3>
+            <p className="confirm-modal-card__text">
+              You are trying to complete the order for <strong>{warningOrder.customerName}</strong> without generating a bill. Do you want to complete it anyway?
+            </p>
+            <div className="confirm-modal-card__actions">
+              <button
+                type="button"
+                className="confirm-modal-card__btn-no"
+                onClick={() => setWarningOrder(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-modal-card__btn-yes"
+                style={{ background: '#eab308', color: '#000' }}
+                onClick={() => {
+                  const order = warningOrder;
+                  setWarningOrder(null);
+                  handleComplete(order);
+                }}
+              >
+                Complete Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Hidden Print Container ── */}
+      <div style={{ display: 'none' }}>
+        <ReceiptTemplate ref={printRef} order={printingOrder} />
+      </div>
     </>
   );
 }

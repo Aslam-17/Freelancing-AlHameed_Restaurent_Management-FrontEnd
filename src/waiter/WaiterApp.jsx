@@ -194,6 +194,7 @@ export default function App() {
             key="orders"
             onOrdersChange={handleOrdersChange}
             onAddItems={handleOrdersAddItems}
+            user={user}
           />
         )}
 

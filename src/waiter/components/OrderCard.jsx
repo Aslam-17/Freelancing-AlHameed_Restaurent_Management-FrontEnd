@@ -20,11 +20,14 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 3600)}h ago`;
 }
 
-export default function OrderCard({ order, onComplete, completing, onAddItems, onDelete }) {
+export default function OrderCard({ order, onComplete, completing, onAddItems, onDelete, canComplete = true, onPrint }) {
   // ── Derive table label ──────────────────────────────────
-  const tableLabel = order.tableId
-    ? (order.tableId.name || `Table ${order.tableId.tableNumber}`)
-    : 'Unknown Table';
+  const isTakeaway = order.orderType === 'Takeaway';
+  const tableLabel = isTakeaway
+    ? 'Takeaway'
+    : order.tableId
+      ? (order.tableId.name || `Table ${order.tableId.tableNumber}`)
+      : 'Unknown Table';
 
   // ── Calculate subtotal from item snapshots ─────────────
   const subtotal = (order.items ?? []).reduce(
@@ -39,11 +42,16 @@ export default function OrderCard({ order, onComplete, completing, onAddItems, o
     <article className="order-card">
       {/* ── Header ── */}
       <div className="order-card__header">
-        {/* Table badge */}
-        <div className="order-card__table-badge">
-          {order.tableId?.tableNumber
-             ? <>T<br />{order.tableId.tableNumber}</>
-             : '?'}
+        {/* Table / Takeaway badge */}
+        <div
+          className="order-card__table-badge"
+          style={isTakeaway ? { background: 'rgba(251,146,60,.2)', border: '1.5px solid rgba(251,146,60,.5)', color: '#fb923c' } : {}}
+        >
+          {isTakeaway
+            ? <>🛵<br />Go</>
+            : order.tableId?.tableNumber
+              ? <>T<br />{order.tableId.tableNumber}</>
+              : '?'}
         </div>
 
         {/* Customer info + time */}
@@ -102,7 +110,7 @@ export default function OrderCard({ order, onComplete, completing, onAddItems, o
           <span className="order-card__total-amount">{formatCurrency(total)}</span>
         </div>
 
-        <div style={{ display: 'flex', gap: 'var(--s-2)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 'var(--s-2)', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <button
             type="button"
             className="btn-delete-order"
@@ -123,16 +131,31 @@ export default function OrderCard({ order, onComplete, completing, onAddItems, o
             📝 Edit
           </button>
 
-          <button
-            className="btn-complete"
-            onClick={() => onComplete(order._id)}
-            disabled={completing}
-            aria-label={`Complete order for ${order.customerName}`}
-          >
-            {completing
-              ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Finalising…</>
-              : <>✔ Complete</>}
-          </button>
+          {onPrint && (
+            <button
+              type="button"
+              className="btn-add-items"
+              style={{ color: '#fb923c', border: '1px solid rgba(251,146,60,.4)', background: 'rgba(251,146,60,.1)' }}
+              onClick={() => onPrint(order)}
+              disabled={completing}
+              aria-label={`Print bill for ${order.customerName}`}
+            >
+              🖨️ Print
+            </button>
+          )}
+
+          {canComplete && (
+            <button
+              className="btn-complete"
+              onClick={() => onComplete(order._id)}
+              disabled={completing}
+              aria-label={`Complete order for ${order.customerName}`}
+            >
+              {completing
+                ? <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Finalising…</>
+                : <>✔ Complete</>}
+            </button>
+          )}
         </div>
       </div>
     </article>

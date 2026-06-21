@@ -1,18 +1,18 @@
 // frontend/src/App.jsx
 // ─────────────────────────────────────────────────────────────
-// Root router — separates the two sub-applications:
+// Root router — separates the three sub-applications:
 //
-//   /        → redirect to /floor
-//   /floor/* → Waiter SPA  (mobile, single-column)
-//   /admin/* → Admin Console (desktop, sidebar layout)
+//   /         → redirect to /floor
+//   /floor/*  → Waiter SPA  (mobile, single-column)
+//   /admin/*  → Admin Console (desktop, sidebar layout)
+//   /biller/* → Biller Console (mobile, bottom-tab layout)
 //
 // Each app manages its own auth state and internal navigation.
-// The wrapper divs (.waiter-root / .admin-root) provide CSS
-// scoping so the two design systems don't conflict.
 // ─────────────────────────────────────────────────────────────
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import WaiterApp from './waiter/WaiterApp.jsx';
 import AdminApp  from './admin/AdminApp.jsx';
+import BillerApp from './biller/BillerApp.jsx';
 
 export default function App() {
   return (
@@ -41,9 +41,20 @@ export default function App() {
           }
         />
 
+        {/* Biller Console — mobile, bottom-tab layout */}
+        <Route
+          path="/biller/*"
+          element={
+            <div className="waiter-root">
+              <BillerApp />
+            </div>
+          }
+        />
+
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/floor" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
+

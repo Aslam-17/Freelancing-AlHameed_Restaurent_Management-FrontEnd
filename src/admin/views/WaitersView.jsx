@@ -57,6 +57,7 @@ function AddWaiterForm({ onSaved, onCancel }) {
               <label className="form-label" htmlFor="w-role">Role <span>*</span></label>
               <select id="w-role" className="form-input" value={role} onChange={(e) => setRole(e.target.value)}>
                 <option value="Waiter">Waiter</option>
+                <option value="Biller">Biller</option>
                 <option value="Admin">Admin</option>
               </select>
             </div>
