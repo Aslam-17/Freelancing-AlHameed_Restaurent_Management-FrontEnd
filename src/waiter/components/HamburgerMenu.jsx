@@ -13,9 +13,9 @@
 // ─────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { view: 'get-order', icon: '🍽️', label: 'Get Order',      desc: 'Take a new order' },
-  { view: 'orders',    icon: '📋', label: 'Orders',          desc: 'Active floor orders' },
-  { view: 'history',   icon: '📜', label: "Today's History", desc: "Today's completed orders" },
+  { view: 'get-order', icon: '🍽️', label: 'Get Order', desc: 'Take a new order' },
+  { view: 'orders', icon: '📋', label: 'Orders', desc: 'Active floor orders' },
+  //{ view: 'history',   icon: '📜', label: "Today's History", desc: "Today's completed orders" },
 ];
 
 export default function HamburgerMenu({
