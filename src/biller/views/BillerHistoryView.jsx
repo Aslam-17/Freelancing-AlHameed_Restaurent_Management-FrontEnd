@@ -1,8 +1,8 @@
 // src/biller/views/BillerHistoryView.jsx
 // ─────────────────────────────────────────────────────────────
-// Biller Past Orders — today's completed bills with Takeaway /
-// Dine-in badge, search, and a running total summary.
-// Reuses the same GET /api/bills/today endpoint as HistoryView.
+// Biller Past Orders — today's completed bills split into
+// "Dine-in" and "Takeaway" tabs with per-tab revenue summary.
+// Reuses GET /api/bills/today endpoint.
 // ─────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { billsApi } from '../../waiter/api/index.js';
@@ -39,12 +39,20 @@ function TypeBadge({ type }) {
   );
 }
 
+// ── Tab definitions ───────────────────────────────────────────
+const ORDER_TABS = [
+  { id: 'Dine-in',   label: 'Dine-in Orders',   icon: '🪑' },
+  { id: 'Takeaway',  label: 'Takeaway Orders',   icon: '🛵' },
+];
+
 export default function BillerHistoryView() {
-  const [bills,     setBills]     = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState('');
-  const [search,    setSearch]    = useState('');
-  const [searching, setSearching] = useState(false);
+  const [bills,       setBills]       = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState('');
+  const [search,      setSearch]      = useState('');
+  const [searching,   setSearching]   = useState(false);
+  // ── NEW: which tab is active ──────────────────────────────
+  const [activeTab,   setActiveTab]   = useState('Dine-in');
 
   const debounceRef = useRef(null);
 
@@ -70,15 +78,24 @@ export default function BillerHistoryView() {
     debounceRef.current = setTimeout(() => fetchBills(val), 400);
   };
 
-  // ── Totals summary ────────────────────────────────────────
-  const summary = bills.reduce(
+  // ── Filter bills by active tab ────────────────────────────
+  // The || 'Dine-in' fallback keeps older records (no orderType) visible
+  // in the Dine-in tab so nothing disappears.
+  const displayedBills = bills.filter(
+    (b) => (b.orderType || 'Dine-in') === activeTab
+  );
+
+  // ── Per-tab revenue totals ────────────────────────────────
+  const tabRevenue = displayedBills.reduce((acc, b) => acc + (b.totalAmount || 0), 0);
+
+  // ── Overall counts for the header ─────────────────────────
+  const allSummary = bills.reduce(
     (acc, b) => {
-      acc.total += b.totalAmount || 0;
-      if (b.orderType === 'Takeaway') acc.takeaway += 1;
-      else acc.dinein += 1;
+      if ((b.orderType || 'Dine-in') === 'Takeaway') acc.takeaway++;
+      else acc.dinein++;
       return acc;
     },
-    { total: 0, takeaway: 0, dinein: 0 }
+    { dinein: 0, takeaway: 0 }
   );
 
   if (loading) {
@@ -107,37 +124,44 @@ export default function BillerHistoryView() {
         >↺</button>
       </div>
 
-      {/* ── Summary strip ── */}
-      {bills.length > 0 && (
-        <div
-          style={{
-            display:        'flex',
-            gap:            'var(--s-3)',
-            padding:        '0 var(--s-4) var(--s-3)',
-            flexWrap:       'wrap',
-          }}
-        >
-          {[
-            { label: 'Revenue',  value: formatCurrency(summary.total), color: 'var(--accent)' },
-            { label: 'Dine-in',  value: summary.dinein,                color: '#4ade80' },
-            { label: 'Takeaway', value: summary.takeaway,              color: '#fb923c' },
-          ].map((s) => (
-            <div
-              key={s.label}
-              style={{
-                flex:           1,
-                minWidth:       80,
-                background:     'var(--surface-2)',
-                border:         '1px solid var(--border)',
-                borderRadius:   'var(--r-lg)',
-                padding:        'var(--s-2) var(--s-3)',
-                textAlign:      'center',
-              }}
+      {/* ── Tab switcher ── */}
+      <div className="bh-tabs" role="tablist" aria-label="Order type">
+        {ORDER_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const count    = tab.id === 'Dine-in' ? allSummary.dinein : allSummary.takeaway;
+          return (
+            <button
+              key={tab.id}
+              id={`bh-tab-${tab.id.toLowerCase()}`}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`bh-panel-${tab.id.toLowerCase()}`}
+              className={`bh-tab${isActive ? ' is-active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
             >
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', marginTop: 2 }}>{s.label}</div>
+              <span>{tab.icon} {tab.label}</span>
+              {bills.length > 0 && (
+                <span className={`bh-tab__badge${isActive ? ' is-active' : ''}`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Per-tab revenue summary card ── */}
+      {displayedBills.length > 0 && (
+        <div className="bh-summary-card">
+          <div className="bh-summary-card__icon">
+            {activeTab === 'Dine-in' ? '🪑' : '🛵'}
+          </div>
+          <div>
+            <div className="bh-summary-card__value">{formatCurrency(tabRevenue)}</div>
+            <div className="bh-summary-card__label">
+              {activeTab} Revenue — {displayedBills.length} order{displayedBills.length !== 1 ? 's' : ''}
             </div>
-          ))}
+          </div>
         </div>
       )}
 
@@ -148,7 +172,7 @@ export default function BillerHistoryView() {
           <input
             className="search-input"
             type="search"
-            placeholder="Search by customer name…"
+            placeholder={activeTab === 'Takeaway' ? 'Search by customer name or phone…' : 'Search by customer name…'}
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             aria-label="Search past orders"
@@ -169,98 +193,125 @@ export default function BillerHistoryView() {
       )}
 
       {/* ── Bills list / empty state ── */}
-      {bills.length === 0 && !error ? (
-        <div className="empty-state" style={{ flex: 1 }}>
-          <div className="empty-state__icon">{search ? '🔍' : '📭'}</div>
-          <div className="empty-state__title">
-            {search ? 'No matching orders' : 'No completed orders yet today'}
+      <div
+        id={`bh-panel-${activeTab.toLowerCase()}`}
+        role="tabpanel"
+        aria-labelledby={`bh-tab-${activeTab.toLowerCase()}`}
+        style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}
+      >
+        {displayedBills.length === 0 && !error ? (
+          <div className="empty-state" style={{ flex: 1 }}>
+            <div className="empty-state__icon">
+              {search ? '🔍' : (activeTab === 'Dine-in' ? '🪑' : '🛵')}
+            </div>
+            <div className="empty-state__title">
+              {search
+                ? 'No matching orders'
+                : `No ${activeTab} orders yet today`}
+            </div>
+            <div className="empty-state__text">
+              {search
+                ? 'Try a different name.'
+                : `Completed ${activeTab.toLowerCase()} orders will appear here.`}
+            </div>
           </div>
-          <div className="empty-state__text">
-            {search ? 'Try a different name.' : 'Completed orders will appear here.'}
-          </div>
-        </div>
-      ) : (
-        <div className="history-list">
-          {bills.map((bill) => {
-            const isTakeaway = bill.orderType === 'Takeaway';
-            const tableLabel = isTakeaway
-              ? 'Takeaway'
-              : bill.tableId
+        ) : (
+          <div className="history-list">
+            {displayedBills.map((bill) => {
+              const isTakeaway = (bill.orderType || 'Dine-in') === 'Takeaway';
+
+              // For Dine-in: show table label; for Takeaway: show phone
+              const tableLabel = bill.tableId
                 ? (bill.tableId.name || `Table ${bill.tableId.tableNumber}`)
                 : '—';
 
-            const subtotal = (bill.items ?? []).reduce(
-              (s, item) => s + item.priceAtTimeOfOrder * item.quantity, 0
-            );
+              const subtotal = (bill.items ?? []).reduce(
+                (s, item) => s + item.priceAtTimeOfOrder * item.quantity, 0
+              );
 
-            return (
-              <article key={bill._id} className="history-card">
-                {/* Card header */}
-                <div className="history-card__header">
-                  {/* Type badge (replaces table number badge) */}
-                  <div
-                    className="history-card__table-badge"
-                    style={isTakeaway
-                      ? { background: 'rgba(251,146,60,.2)', border: '1.5px solid rgba(251,146,60,.5)', color: '#fb923c' }
-                      : {}}
-                  >
-                    {isTakeaway
-                      ? <>🛵<br />Go</>
-                      : bill.tableId?.tableNumber
-                        ? <>T<br />{bill.tableId.tableNumber}</>
-                        : '?'}
-                  </div>
-
-                  <div className="history-card__meta">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-2)', flexWrap: 'wrap' }}>
-                      <div className="history-card__customer">{bill.customerName}</div>
-                      <TypeBadge type={bill.orderType || 'Dine-in'} />
+              return (
+                <article key={bill._id} className="history-card">
+                  {/* Card header */}
+                  <div className="history-card__header">
+                    {/* Badge: table number for dine-in, scooter icon for takeaway */}
+                    <div
+                      className="history-card__table-badge"
+                      style={isTakeaway
+                        ? { background: 'rgba(251,146,60,.2)', border: '1.5px solid rgba(251,146,60,.5)', color: '#fb923c' }
+                        : {}}
+                    >
+                      {isTakeaway
+                        ? <>🛵<br />Go</>
+                        : bill.tableId?.tableNumber
+                          ? <>T<br />{bill.tableId.tableNumber}</>
+                          : '?'}
                     </div>
-                    {bill.customerPhone && (
-                      <div className="history-card__phone">📞 {bill.customerPhone}</div>
-                    )}
-                    <div className="history-card__info">
-                      <span>{tableLabel}</span>
-                      <span>·</span>
-                      <span>🕐 {timeLabel(bill.createdAt)}</span>
-                    </div>
-                  </div>
 
-                  <div className="history-card__total">
-                    {formatCurrency(bill.totalAmount)}
-                  </div>
-                </div>
-
-                {/* Items */}
-                <div className="history-card__items">
-                  {(bill.items ?? []).map((line, i) => {
-                    const name  = line.menuItem?.name ?? 'Unknown item';
-                    const price = line.priceAtTimeOfOrder ?? 0;
-                    return (
-                      <div key={i} className="history-card__item">
-                        <span className="history-card__item-qty">{line.quantity}×</span>
-                        <span className="history-card__item-name">{name}</span>
-                        <span className="history-card__item-price">
-                          {formatCurrency(price * line.quantity)}
-                        </span>
+                    <div className="history-card__meta">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s-2)', flexWrap: 'wrap' }}>
+                        <div className="history-card__customer">{bill.customerName}</div>
+                        <TypeBadge type={bill.orderType || 'Dine-in'} />
                       </div>
-                    );
-                  })}
-                </div>
 
-                {/* GST footer */}
-                <div className="history-card__footer">
-                  <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>
-                    Subtotal {formatCurrency(subtotal)}
-                    {bill.gstApplied > 0 && ` + GST ₹${bill.gstApplied.toFixed(0)}`}
-                  </span>
-                  <span className="history-card__badge">✅ Completed</span>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
+                      {/* Takeaway: show phone number prominently; Dine-in: show table */}
+                      {activeTab === 'Takeaway' ? (
+                        bill.customerPhone ? (
+                          <div className="history-card__phone">📞 {bill.customerPhone}</div>
+                        ) : (
+                          <div className="history-card__phone" style={{ color: 'var(--text-dim)' }}>No phone on record</div>
+                        )
+                      ) : (
+                        <div className="history-card__info">
+                          <span>🪑 {tableLabel}</span>
+                          <span>·</span>
+                          <span>🕐 {timeLabel(bill.createdAt)}</span>
+                        </div>
+                      )}
+
+                      {/* For Takeaway, still show the time */}
+                      {activeTab === 'Takeaway' && (
+                        <div className="history-card__info">
+                          <span>🕐 {timeLabel(bill.createdAt)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="history-card__total">
+                      {formatCurrency(bill.totalAmount)}
+                    </div>
+                  </div>
+
+                  {/* Items */}
+                  <div className="history-card__items">
+                    {(bill.items ?? []).map((line, i) => {
+                      const name  = line.menuItem?.name ?? 'Unknown item';
+                      const price = line.priceAtTimeOfOrder ?? 0;
+                      return (
+                        <div key={i} className="history-card__item">
+                          <span className="history-card__item-qty">{line.quantity}×</span>
+                          <span className="history-card__item-name">{name}</span>
+                          <span className="history-card__item-price">
+                            {formatCurrency(price * line.quantity)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* GST footer */}
+                  <div className="history-card__footer">
+                    <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>
+                      Subtotal {formatCurrency(subtotal)}
+                      {bill.gstApplied > 0 && ` + GST ₹${bill.gstApplied.toFixed(0)}`}
+                    </span>
+                    <span className="history-card__badge">✅ Completed</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <div style={{
         textAlign:     'center',
@@ -268,6 +319,7 @@ export default function BillerHistoryView() {
         color:         'var(--text-dim)',
         padding:       'var(--s-3)',
         paddingBottom: 'calc(var(--s-3) + env(safe-area-inset-bottom))',
+        flexShrink:    0,
       }}>
         Today's orders only · Auto-cleared at midnight
       </div>

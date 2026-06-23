@@ -14,6 +14,12 @@ import ReceiptTemplate from '../../biller/components/ReceiptTemplate.jsx';
 
 const POLL_INTERVAL = 30_000; // 30 seconds
 
+// ── Tab definitions (mirrors BillerHistoryView) ──────────────
+const ORDER_TABS = [
+  { id: 'Dine-in',  label: 'Dine-in Orders',  icon: '🪑' },
+  { id: 'Takeaway', label: 'Takeaway Orders',  icon: '🛵' },
+];
+
 export default function OrdersView({ onOrdersChange, onAddItems, user }) {
   const [orders,     setOrders]     = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -25,9 +31,16 @@ export default function OrdersView({ onOrdersChange, onAddItems, user }) {
   const [printingOrder,   setPrintingOrder]   = useState(null);
   const [warningOrder,    setWarningOrder]    = useState(null);
   const [printedOrders,   setPrintedOrders]   = useState(new Set());
+  // ── NEW: active tab ──────────────────────────────────────────
+  const [activeTab,       setActiveTab]       = useState('Dine-in');
 
   const pollTimer = useRef(null);
   const printRef  = useRef(null);
+
+  // ── Derived: split by order type (|| 'Dine-in' keeps legacy records) ──
+  const dineInOrders   = orders.filter((o) => (o.orderType || 'Dine-in') === 'Dine-in');
+  const takeawayOrders = orders.filter((o) => o.orderType === 'Takeaway');
+  const displayedOrders = activeTab === 'Dine-in' ? dineInOrders : takeawayOrders;
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -148,6 +161,30 @@ export default function OrdersView({ onOrdersChange, onAddItems, user }) {
           </button>
         </div>
 
+        {/* ── Tab switcher (same classes as BillerHistoryView) ── */}
+        <div className="bh-tabs" role="tablist" aria-label="Order type">
+          {ORDER_TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            const count    = tab.id === 'Dine-in' ? dineInOrders.length : takeawayOrders.length;
+            return (
+              <button
+                key={tab.id}
+                id={`ao-tab-${tab.id.toLowerCase()}`}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`ao-panel-${tab.id.toLowerCase()}`}
+                className={`bh-tab${isActive ? ' is-active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <span>{tab.icon} {tab.label}</span>
+                <span className={`bh-tab__badge${isActive ? ' is-active' : ''}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* ── Error banner ── */}
         {error && (
           <div className="alert alert-error">
@@ -156,37 +193,50 @@ export default function OrdersView({ onOrdersChange, onAddItems, user }) {
           </div>
         )}
 
-        {/* ── Orders list / empty state ── */}
-        {orders.length === 0 && !error ? (
-          <div className="empty-state" style={{ flex: 1 }}>
-            <div className="empty-state__icon">🎉</div>
-            <div className="empty-state__title">No active orders</div>
-            <div className="empty-state__text">
-              All orders are completed. The floor is clear!
+        {/* ── Orders list / empty state (scoped to active tab) ── */}
+        <div
+          id={`ao-panel-${activeTab.toLowerCase()}`}
+          role="tabpanel"
+          aria-labelledby={`ao-tab-${activeTab.toLowerCase()}`}
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}
+        >
+          {displayedOrders.length === 0 && !error ? (
+            <div className="empty-state" style={{ flex: 1 }}>
+              <div className="empty-state__icon">
+                {activeTab === 'Dine-in' ? '🎉' : '🛵'}
+              </div>
+              <div className="empty-state__title">
+                No active {activeTab.toLowerCase()} orders
+              </div>
+              <div className="empty-state__text">
+                {activeTab === 'Dine-in'
+                  ? 'All tables are settled. The floor is clear!'
+                  : 'No takeaway orders pending in the kitchen.'}
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="orders-list">
-            {orders.map((order) => (
-              <OrderCard
-                key={order._id}
-                order={order}
-                onComplete={() => {
-                  if (!printedOrders.has(order._id)) {
-                    setWarningOrder(order);
-                  } else {
-                    setConfirmingOrder(order);
-                  }
-                }}
-                completing={completing.has(order._id)}
-                onAddItems={onAddItems}
-                onDelete={() => setOrderToDelete(order)}
-                onPrint={(!user || user.role === 'Biller' || user.role === 'Admin') ? () => handlePrintClick(order) : undefined}
-                canComplete={!user || user.role === 'Biller' || user.role === 'Admin'}
-              />
-            ))}
-          </div>
-        )}
+          ) : (
+            <div className="orders-list">
+              {displayedOrders.map((order) => (
+                <OrderCard
+                  key={order._id}
+                  order={order}
+                  onComplete={() => {
+                    if (!printedOrders.has(order._id)) {
+                      setWarningOrder(order);
+                    } else {
+                      setConfirmingOrder(order);
+                    }
+                  }}
+                  completing={completing.has(order._id)}
+                  onAddItems={onAddItems}
+                  onDelete={() => setOrderToDelete(order)}
+                  onPrint={(!user || user.role === 'Biller' || user.role === 'Admin') ? () => handlePrintClick(order) : undefined}
+                  canComplete={!user || user.role === 'Biller' || user.role === 'Admin'}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Polling note */}
         <div style={{
