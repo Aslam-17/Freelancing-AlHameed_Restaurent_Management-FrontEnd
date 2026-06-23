@@ -32,8 +32,14 @@ const ReceiptCopy = ({ order, copyType }) => {
       <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '4px', fontSize: '14px' }}>
         Al Hameed Restaurant
       </div>
+      <div style={{ textAlign: 'center', fontSize: '10px', margin: '0' }}>
+        Ph: +91 99442 14345
+      </div>
+      <div style={{ textAlign: 'center', fontSize: '10px', margin: '0' }}>
+        GSTIN: 33FQWPS7734C1Z9
+      </div>
       
-      <div style={{ textAlign: 'center', marginBottom: '8px', fontSize: '10px' }}>
+      <div style={{ textAlign: 'center', marginTop: '4px', marginBottom: '8px', fontSize: '10px' }}>
         --- {copyType} ---
       </div>
 
@@ -67,7 +73,7 @@ const ReceiptCopy = ({ order, copyType }) => {
         <div>TOTAL</div>
         <div>{formatCurrency(order.totalAmount)}</div>
       </div>
-      
+
       <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '10px' }}>
         Thank You!
       </div>
